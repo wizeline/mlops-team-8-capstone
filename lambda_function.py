@@ -1,6 +1,8 @@
 import json
 from transformers import pipeline
 import re
+import os
+os.environ['TRANSFORMERS_CACHE'] = '/tmp'
 
 stop = set([
     'a',
@@ -367,6 +369,7 @@ def parse_email(raw_text):
     value = ''
     key = None
     for line in lines:
+        line = line.strip()
         for field in fields:
             if (field in line) & (last_field != 'X-FileName'):
                 pair = line.split(':',1)
@@ -402,7 +405,6 @@ def parse_email(raw_text):
                         value += line
                         email[key] = value
                     break
-
     if 'body' not in email:
         if 'NoField' in email:
             email['body'] = email['NoField']
@@ -428,23 +430,31 @@ nlp_sent = pipeline("sentiment-analysis", model = model_sent_path, tokenizer = m
 nlp_sum = pipeline("summarization", model = model_sum_path, tokenizer = model_sum_path)
 
 def lambda_handler(event, context):
-    
-    raw_text = event['text']
-    email = parse_email(raw_text)
-    text = clean_text(email["body"])
+    try:
 
-    sentiment = nlp_sent(text, top_k = None)
+        event = event#json.loads(event)
+        raw_text = event['text']
+        email = parse_email(raw_text)
+        text = email["body"] #clean_text(email["body"])
+        sentiment = nlp_sent(text, top_k = None)
 
-    n = len(text.split(" "))
-    if n > 62*2:
-        summary =  nlp_sum(text)[0]['summary_text']
-    elif n > 10:
-        summary = nlp_sum(text, max_length = round(n/1.5))[0]['summary_text']
-    else:
-        summary = text
+        n = len(text.split(" "))
+        if n > 62*2:
+            summary =  nlp_sum(text)[0]['summary_text']
+        elif n > 20:
+            summary = nlp_sum(text, max_length = round(n/1.5))[0]['summary_text']
+        else:
+            summary = text
 
-    ans = {"summary" : summary, "sentiment" : sentiment, "email" : email}
-    return {
-        'statusCode' : 200,
-        'body' : ans
-    }
+        ans = {"summary" : summary, "sentiment" : sentiment, "email" : email}
+        return {
+            'statusCode' : 200,
+            'body' : json.dumps(ans)
+        }
+
+    except Exception as e:
+        print(e)
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": repr(e)})
+        }
