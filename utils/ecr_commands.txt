@@ -1,0 +1,15 @@
+docker build -t mlops-team-8-lambda .
+
+
+aws_region=us-east-2
+aws_account_id=#####
+
+aws ecr get-login-password \
+    --region $aws_region \
+| docker login \
+    --username AWS \
+    --password-stdin $aws_account_id.dkr.ecr.$aws_region.amazonaws.com
+
+docker tag mlops-team-8-lambda $aws_account_id.dkr.ecr.$aws_region.amazonaws.com/ecr-name
+
+docker push $aws_account_id.dkr.ecr.$aws_region.amazonaws.com/ecr-name
