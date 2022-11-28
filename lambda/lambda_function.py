@@ -423,11 +423,15 @@ def clean_text(data):
 
 model_sent = "philschmid/distilbert-base-multilingual-cased-sentiment-2"
 model_sum = "sshleifer/distilbart-xsum-12-3"
+model_spam = "mrm8488/bert-tiny-finetuned-enron-spam-detection"
 model_sent_path = f"package/{model_sent}"
 model_sum_path = f"package/{model_sum}"
+model_spam_path = f"package/{model_spam}"
+
 
 nlp_sent = pipeline("sentiment-analysis", model = model_sent_path, tokenizer = model_sent_path)
 nlp_sum = pipeline("summarization", model = model_sum_path, tokenizer = model_sum_path)
+nlp_spam = pipeline("text-classification", model = model_spam_path, tokenizer = model_spam_path)
 
 def lambda_handler(event, context):
     try:
@@ -435,7 +439,9 @@ def lambda_handler(event, context):
         event = event#json.loads(event)
         raw_text = event['text']
         email = parse_email(raw_text)
-        text = email["body"] #clean_text(email["body"])
+        text_clean = clean_text(email["body"])
+        text = email["body"] 
+        
         sentiment = nlp_sent(text, top_k = None)
 
         n = len(text.split(" "))
@@ -446,7 +452,16 @@ def lambda_handler(event, context):
         else:
             summary = text
 
-        ans = {"summary" : summary, "sentiment" : sentiment, "email" : email}
+        spam = nlp_spam(text_clean, max_length=512, truncation=True)[0]
+        if spam["label"] == 'LABEL_0':
+            spam["label"] = "Not Spam"
+        elif spam["label"] == 'LABEL_1':
+            spam["label"] = "Spam"
+
+
+    
+
+        ans = {"summary" : summary, "sentiment" : sentiment, "spam_classification": spam, "email" : email}
         return {
             'statusCode' : 200,
             'body' : json.dumps(ans)
