@@ -1,0 +1,21 @@
+STRUCT <
+filename: STRING,
+username: STRING,
+message-id: STRING,
+date: STRING,
+from: STRING,
+to: STRING,
+subject: STRING,
+x-filename: STRING,
+body: STRING,
+body_cleansed: STRING,
+positive: STRING,
+neutral: STRING,
+negative: STRING,
+summary: STRING,
+len: STRING,
+spam_label: STRING,
+spam_score: STRING,
+sentiment: STRING,
+to_count: STRING
+>
