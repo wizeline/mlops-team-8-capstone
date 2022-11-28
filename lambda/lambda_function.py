@@ -441,24 +441,23 @@ def lambda_handler(event, context):
         email = parse_email(raw_text)
         text_clean = clean_text(email["body"])
         text = email["body"] 
-        
+
         sentiment = nlp_sent(text, top_k = None, max_length = 512, truncation=True)
 
         n = len(text.split(" "))
         if n > 62*2:
-            summary =  nlp_sum(text, max_length = n/4, truncation=True)[0]['summary_text']
+            summary =  nlp_sum(text, max_length = round(n/4), truncation=True)[0]['summary_text']
         elif n > 20:
             summary = nlp_sum(text, max_length = round(n/1.5), truncation=True)[0]['summary_text']
         else:
             summary = text
+
 
         spam = nlp_spam(text_clean, max_length=512, truncation=True)[0]
         if spam["label"] == 'LABEL_0':
             spam["label"] = "Not Spam"
         elif spam["label"] == 'LABEL_1':
             spam["label"] = "Spam"
-
-
     
 
         ans = {"summary" : summary, "sentiment" : sentiment, "spam_classification": spam, "email" : email}
